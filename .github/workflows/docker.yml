@@ -24,4 +24,5 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          no-cache: true
           tags: optiongeek/rule4210:latest
