@@ -2,7 +2,8 @@
 set -e
 
 # Start the Rule 4210 server in background, piping output to container stdout
-./server 2>&1 &
+echo "Starting server from $(pwd), binary exists: $(ls -la /app/server 2>&1)"
+/app/server 2>&1 &
 echo "server PID: $!"
 
 # If a Cloudflare tunnel token is provided, start cloudflared
