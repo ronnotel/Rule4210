@@ -6,6 +6,7 @@ members = [
     "crates/rule4210-scenarios",
     "crates/rule4210-margin",
     "crates/rule4210-demo",
+    "crates/rule4210-server",
 ]
 
 [workspace.dependencies]

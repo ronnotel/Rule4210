@@ -1,0 +1,19 @@
+[package]
+name    = "rule4210-server"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[dependencies]
+axum        = "0.7"
+tokio       = { version = "1", features = ["full"] }
+tower-http  = { version = "0.5", features = ["cors"] }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+rule4210-core      = { path = "../rule4210-core"      }
+rule4210-pricer    = { path = "../rule4210-pricer"    }
+rule4210-scenarios = { path = "../rule4210-scenarios" }
+rule4210-margin    = { path = "../rule4210-margin"    }

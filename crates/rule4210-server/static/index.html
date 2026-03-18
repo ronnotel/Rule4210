@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rule 4210 — Portfolio Margin Engine</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface2: #21262d;
+  --border:   #30363d;
+  --accent:   #238636;
+  --accent2:  #388bfd;
+  --text:     #c9d1d9;
+  --muted:    #8b949e;
+  --green:    #3fb950;
+  --red:      #f85149;
+  --amber:    #d29922;
+  --radius:   6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+}
+.brand { font-size: 18px; font-weight: 700; color: var(--green); letter-spacing: -0.3px; }
+.brand span { color: var(--text); }
+.tagline { color: var(--muted); font-size: 12px; }
+.badge-finra {
+  margin-left: auto;
+  background: #1f2937;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+main {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+aside {
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+.results {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.card h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
+.field { margin-bottom: 10px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--accent2); }
+
+/* ── Position rows ───────────────────────────────────────────────────────── */
+.pos-row {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 6px;
+  align-items: end;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.pos-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.pos-side {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+.pos-side.long  { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+.pos-side.short { background: rgba(248,81,73,0.15);  color: var(--red);   border: 1px solid rgba(248,81,73,0.3); }
+.pos-fields { display: flex; flex-direction: column; gap: 4px; }
+.pos-fields label { font-size: 10px; color: var(--muted); }
+.pos-row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pos-row-inputs input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 5px 7px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+  width: 100%;
+}
+.pos-row-inputs input:focus { border-color: var(--accent2); }
+
+/* ── Calculate button ────────────────────────────────────────────────────── */
+.btn-calc {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-calc:hover   { background: #2ea043; }
+.btn-calc:active  { opacity: 0.8; }
+.btn-calc:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Section headers ─────────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.section-header h2 { font-size: 13px; font-weight: 600; }
+.pill {
+  font-size: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+/* ── Scenario table ──────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+}
+th {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 7px 10px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+th:first-child { text-align: left; min-width: 170px; }
+td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+td:first-child { text-align: left; color: var(--muted); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.pos  { color: var(--green); }
+.neg  { color: var(--red); }
+.total-col { font-weight: 700; }
+tr.worst td {
+  background: rgba(210,153,34,0.08);
+  border-color: rgba(210,153,34,0.3);
+}
+tr.worst td:first-child { color: var(--amber); }
+.worst-marker { color: var(--amber); font-size: 11px; margin-left: 6px; }
+
+/* ── Margin comparison ───────────────────────────────────────────────────── */
+.margin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.margin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.margin-card .mc-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+.margin-card .mc-amount {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: 'Consolas', monospace;
+  letter-spacing: -0.5px;
+}
+.margin-card .mc-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.mc-pm     { border-color: rgba(63,185,80,0.4); }
+.mc-pm .mc-amount  { color: var(--green); }
+.mc-regt   { border-color: rgba(248,81,73,0.3); }
+.mc-regt .mc-amount { color: var(--red); }
+.mc-save   { border-color: rgba(56,139,253,0.4); }
+.mc-save .mc-amount { color: var(--accent2); }
+
+/* ── Loading / empty state ───────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px;
+  font-size: 13px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 8px 24px;
+  color: var(--muted);
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">■ Rule<span>4210</span></div>
+  <div class="tagline">Portfolio Margin Engine</div>
+  <div class="badge-finra">FINRA Rule 4210(g) · TIMS Methodology</div>
+</header>
+
+<main>
+  <!-- ── Controls panel ───────────────────────────────────────────────── -->
+  <aside>
+
+    <div class="card">
+      <h3>Market Context</h3>
+      <div class="field">
+        <label>Underlying</label>
+        <input id="underlying" value="SPY" placeholder="SPY">
+      </div>
+      <div class="field">
+        <label>Spot Price ($)</label>
+        <input id="spot" type="number" step="0.5" value="560.00">
+      </div>
+      <div class="field">
+        <label>ATM Vol (%)</label>
+        <input id="vol" type="number" step="0.1" value="17.2">
+      </div>
+      <div class="field">
+        <label>Risk-free Rate (%)</label>
+        <input id="rate" type="number" step="0.05" value="4.50">
+      </div>
+      <div class="field">
+        <label>Dividend Yield (%)</label>
+        <input id="div_yield" type="number" step="0.05" value="1.30">
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Positions</h3>
+
+      <!-- Stock -->
+      <div class="pos-row">
+        <div class="pos-side long">LONG</div>
+        <div class="pos-fields">
+          <label>Shares of <span id="und-label">SPY</span></label>
+          <div class="pos-row-inputs">
+            <input id="stock_qty" type="number" step="1" value="100" placeholder="qty">
+          </div>
+        </div>
+      </div>
+
+      <!-- Long Put -->
+      <div class="pos-row">
+        <div class="pos-side long">LONG</div>
+        <div class="pos-fields">
+          <label>Put contracts</label>
+          <div class="pos-row-inputs">
+            <input id="put_qty"    type="number" step="1"   value="1"          placeholder="qty">
+            <input id="put_strike" type="number" step="1"   value="540"        placeholder="strike">
+          </div>
+          <div class="pos-row-inputs" style="margin-top:4px">
+            <input id="put_expiry" type="date"              value="2026-04-17" placeholder="expiry">
+          </div>
+        </div>
+      </div>
+
+      <!-- Short Call -->
+      <div class="pos-row">
+        <div class="pos-side short">SHORT</div>
+        <div class="pos-fields">
+          <label>Call contracts</label>
+          <div class="pos-row-inputs">
+            <input id="call_qty"    type="number" step="1"  value="1"          placeholder="qty">
+            <input id="call_strike" type="number" step="1"  value="580"        placeholder="strike">
+          </div>
+          <div class="pos-row-inputs" style="margin-top:4px">
+            <input id="call_expiry" type="date"             value="2026-04-17" placeholder="expiry">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-calc" id="calc-btn" onclick="recalculate()">
+      ▶ Calculate Portfolio Margin
+    </button>
+
+  </aside>
+
+  <!-- ── Results panel ────────────────────────────────────────────────── -->
+  <div class="results">
+
+    <!-- Margin summary -->
+    <div class="margin-grid" id="margin-grid" style="display:none">
+      <div class="margin-card mc-pm">
+        <div class="mc-label">Portfolio Margin (TIMS)</div>
+        <div class="mc-amount" id="mc-pm">—</div>
+        <div class="mc-sub"   id="mc-pm-sub">worst scenario</div>
+      </div>
+      <div class="margin-card mc-regt">
+        <div class="mc-label">Regulation T</div>
+        <div class="mc-amount" id="mc-regt">—</div>
+        <div class="mc-sub">50% of stock position value</div>
+      </div>
+      <div class="margin-card mc-save">
+        <div class="mc-label">Capital Savings</div>
+        <div class="mc-amount" id="mc-save">—</div>
+        <div class="mc-sub"   id="mc-save-pct">PM vs Reg-T reduction</div>
+      </div>
+    </div>
+
+    <!-- Scenario table -->
+    <div class="card">
+      <div class="section-header">
+        <h2>TIMS Scenario Analysis</h2>
+        <span class="pill">12 scenarios</span>
+        <span class="pill" style="color:var(--amber)">Rule 4210(g)</span>
+      </div>
+      <div class="table-wrap">
+        <div class="empty" id="table-empty">
+          Click <strong>Calculate Portfolio Margin</strong> to run the scenario engine.
+        </div>
+        <table id="scenario-table" style="display:none">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>Rule 4210 Portfolio Margin Engine</span>
+  <span>Pricing: Black-Scholes (demo) · Production: CRR binomial tree with discrete dividends</span>
+</footer>
+
+<script>
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function fmtDollars(n) {
+  const abs = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return (n < 0 ? '-$' : '$') + abs;
+}
+
+function tte(expiryStr) {
+  // Days from today to expiry date, converted to years
+  const today  = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryStr + 'T00:00:00');
+  const days   = (expiry - today) / (1000 * 60 * 60 * 24);
+  return Math.max(days, 1) / 365.0;
+}
+
+function pctClass(v) { return v >= 0 ? 'pos' : 'neg'; }
+
+// ── Build request from form ───────────────────────────────────────────────────
+
+function buildRequest() {
+  const underlying = document.getElementById('underlying').value.trim().toUpperCase();
+  document.getElementById('und-label').textContent = underlying;
+
+  const putExpiry  = document.getElementById('put_expiry').value;
+  const callExpiry = document.getElementById('call_expiry').value;
+
+  return {
+    underlying,
+    spot:      parseFloat(document.getElementById('spot').value),
+    vol:       parseFloat(document.getElementById('vol').value)       / 100,
+    rate:      parseFloat(document.getElementById('rate').value)      / 100,
+    div_yield: parseFloat(document.getElementById('div_yield').value) / 100,
+    positions: [
+      { kind: 'stock', qty: parseFloat(document.getElementById('stock_qty').value) },
+      { kind: 'put',
+        qty:    parseFloat(document.getElementById('put_qty').value),
+        strike: parseFloat(document.getElementById('put_strike').value),
+        expiry: putExpiry,
+        tte:    tte(putExpiry) },
+      { kind: 'call',
+        qty:    -Math.abs(parseFloat(document.getElementById('call_qty').value)),
+        strike: parseFloat(document.getElementById('call_strike').value),
+        expiry: callExpiry,
+        tte:    tte(callExpiry) },
+    ]
+  };
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+
+function renderResults(data) {
+  // Margin cards
+  document.getElementById('margin-grid').style.display = 'grid';
+  document.getElementById('mc-pm').textContent    = fmtDollars(data.portfolio_margin);
+  document.getElementById('mc-regt').textContent  = fmtDollars(data.reg_t);
+  document.getElementById('mc-save').textContent  = fmtDollars(data.savings);
+  document.getElementById('mc-pm-sub').textContent   = data.worst_scenario;
+  document.getElementById('mc-save-pct').textContent = data.savings_pct.toFixed(1) + '% reduction vs Reg-T';
+
+  // Scenario table
+  // Header
+  let hdr = '<tr><th>Scenario</th>';
+  data.position_labels.forEach(l => {
+    const short = l.length > 16 ? l.slice(0, 14) + '…' : l;
+    hdr += `<th>${short}</th>`;
+  });
+  hdr += '<th>Total P&amp;L</th></tr>';
+  document.getElementById('table-head').innerHTML = hdr;
+
+  // Rows
+  let body = '';
+  data.scenarios.forEach(s => {
+    const rowCls = s.is_worst ? ' class="worst"' : '';
+    body += `<tr${rowCls}><td>${s.label}</td>`;
+    s.position_pnls.forEach(v => {
+      body += `<td class="${pctClass(v)}">${fmtDollars(v)}</td>`;
+    });
+    const marker = s.is_worst ? '<span class="worst-marker">◄ WORST</span>' : '';
+    body += `<td class="${pctClass(s.total_pnl)} total-col">${fmtDollars(s.total_pnl)}${marker}</td>`;
+    body += '</tr>';
+  });
+  document.getElementById('table-body').innerHTML = body;
+
+  document.getElementById('table-empty').style.display = 'none';
+  document.getElementById('scenario-table').style.display = 'table';
+}
+
+// ── Calculate ─────────────────────────────────────────────────────────────────
+
+async function recalculate() {
+  const btn = document.getElementById('calc-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Calculating…';
+  try {
+    const req  = buildRequest();
+    const resp = await fetch('/api/margin', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(req),
+    });
+    if (!resp.ok) { alert('Calculation error: ' + await resp.text()); return; }
+    renderResults(await resp.json());
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Calculate Portfolio Margin';
+  }
+}
+
+// ── Auto-load demo on page ready ──────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const resp = await fetch('/api/demo');
+    if (resp.ok) renderResults(await resp.json());
+  } catch (_) { /* server not ready yet — user can click Calculate */ }
+});
+</script>
+</body>
+</html>
