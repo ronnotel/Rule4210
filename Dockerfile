@@ -26,8 +26,9 @@ RUN mkdir -p crates/rule4210-core/src      && echo "pub fn _stub() {}" > crates/
 
 RUN cargo build --release --bin server 2>/dev/null; true
 
-# Now copy real source and rebuild only what changed
+# Now copy real source — touch all .rs files so cargo sees them as newer than stubs
 COPY crates/ crates/
+RUN find /app/crates -name "*.rs" -exec touch {} \;
 RUN cargo build --release --bin server
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
