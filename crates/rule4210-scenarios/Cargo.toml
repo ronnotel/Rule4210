@@ -1,0 +1,8 @@
+[package]
+name    = "rule4210-scenarios"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rule4210-core   = { path = "../rule4210-core" }
+rule4210-pricer = { path = "../rule4210-pricer" }

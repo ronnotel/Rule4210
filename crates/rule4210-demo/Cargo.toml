@@ -1,0 +1,14 @@
+[package]
+name    = "rule4210-demo"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "demo"
+path = "src/main.rs"
+
+[dependencies]
+rule4210-core      = { path = "../rule4210-core" }
+rule4210-pricer    = { path = "../rule4210-pricer" }
+rule4210-scenarios = { path = "../rule4210-scenarios" }
+rule4210-margin    = { path = "../rule4210-margin" }

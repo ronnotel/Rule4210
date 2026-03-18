@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rule4210-core",
+    "crates/rule4210-pricer",
+    "crates/rule4210-scenarios",
+    "crates/rule4210-margin",
+    "crates/rule4210-demo",
+]
+
+[workspace.dependencies]
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"

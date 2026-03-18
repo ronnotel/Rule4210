@@ -1,0 +1,9 @@
+[package]
+name    = "rule4210-pricer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rule4210-core = { path = "../rule4210-core" }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
