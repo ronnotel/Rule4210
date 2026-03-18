@@ -1,7 +1,10 @@
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
-FROM rust:1.82-slim AS builder
+FROM rust:1.85-slim AS builder
 
 WORKDIR /app
+
+# Increase stack size for rustc running under QEMU emulation
+ENV RUST_MIN_STACK=16777216
 
 # Cache dependencies separately from source
 COPY Cargo.toml Cargo.lock ./
@@ -31,11 +34,16 @@ RUN cargo build --release --bin server
 FROM debian:bookworm-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates \
+        ca-certificates curl \
+    && curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+       -o /usr/local/bin/cloudflared \
+    && chmod +x /usr/local/bin/cloudflared \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=builder /app/target/release/server ./server
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8080
-CMD ["./server"]
+ENTRYPOINT ["./entrypoint.sh"]
