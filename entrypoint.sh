@@ -2,7 +2,7 @@
 
 echo "binary: $(ls -la /app/server 2>&1)"
 
-# Auto-restart loop for the server
+# Auto-restart loop for the Rust server
 (while true; do
     echo "Starting Rule 4210 server..."
     /app/server 2>&1
@@ -10,9 +10,14 @@ echo "binary: $(ls -la /app/server 2>&1)"
     sleep 1
 done) &
 
-# Start cloudflared (or wait if no token)
+# Auto-restart loop for cloudflared
 if [ -n "$TUNNEL_TOKEN" ]; then
-    exec cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+    while true; do
+        echo "Starting cloudflared..."
+        cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+        echo "cloudflared exited ($?), restarting in 3s..."
+        sleep 3
+    done
 else
     wait
 fi
