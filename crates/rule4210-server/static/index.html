@@ -151,6 +151,32 @@ aside {
 }
 .pos-row-inputs input:focus { border-color: var(--accent2); }
 
+/* ── Pricer toggle ───────────────────────────────────────────────────────── */
+.pricer-toggle {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 2px;
+}
+.pricer-toggle button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 6px 0;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.pricer-toggle button.active {
+  background: var(--accent2);
+  color: #fff;
+  font-weight: 600;
+}
+
 /* ── Calculate button ────────────────────────────────────────────────────── */
 .btn-calc {
   background: var(--accent);
@@ -312,6 +338,13 @@ footer {
         <label>Dividend Yield (%)</label>
         <input id="div_yield" type="number" step="0.05" value="1.30">
       </div>
+      <div class="field">
+        <label>Pricing Model</label>
+        <div class="pricer-toggle">
+          <button id="btn-bs"  class="active" onclick="setPricer('bs')">Black-Scholes</button>
+          <button id="btn-crr" class=""       onclick="setPricer('crr')">CRR Binomial</button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -432,6 +465,16 @@ function tte(expiryStr) {
 
 function pctClass(v) { return v >= 0 ? 'pos' : 'neg'; }
 
+// ── Pricer toggle ─────────────────────────────────────────────────────────────
+
+let selectedPricer = 'bs';
+
+function setPricer(p) {
+  selectedPricer = p;
+  document.getElementById('btn-bs').classList.toggle('active',  p === 'bs');
+  document.getElementById('btn-crr').classList.toggle('active', p === 'crr');
+}
+
 // ── Build request from form ───────────────────────────────────────────────────
 
 function buildRequest() {
@@ -447,6 +490,7 @@ function buildRequest() {
     vol:       parseFloat(document.getElementById('vol').value)       / 100,
     rate:      parseFloat(document.getElementById('rate').value)      / 100,
     div_yield: parseFloat(document.getElementById('div_yield').value) / 100,
+    pricer: selectedPricer,
     positions: [
       { kind: 'stock', qty: parseFloat(document.getElementById('stock_qty').value) },
       { kind: 'put',

@@ -6,7 +6,7 @@
 //   BlackScholesPricer    — analytic BS for European options; used for scenario repricing
 //   OptionChain / loader  — typed representation of a JSON option chain (Tradier-compatible)
 
-use rule4210_core::{EquityOption, Instrument, OptionType};
+use rule4210_core::{EquityOption, ExerciseStyle, Instrument, OptionType};
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -86,6 +86,86 @@ pub fn norm_cdf(x: f64) -> f64 {
 }
 
 // ---------------------------------------------------------------------------
+// CRR binomial tree pricer
+// ---------------------------------------------------------------------------
+
+/// Prices options via CRR binomial tree with iterative convergence.
+/// Supports American early exercise. Uses continuous dividend yield.
+pub struct CrrPricer;
+
+impl Pricer for CrrPricer {
+    fn price(&self, instrument: &Instrument, ctx: &MarketContext) -> Option<f64> {
+        match instrument {
+            Instrument::Stock { .. } => Some(ctx.spot),
+            Instrument::Option(opt)  => crr_price_converged(ctx, opt),
+        }
+    }
+}
+
+fn crr_price_converged(ctx: &MarketContext, opt: &EquityOption) -> Option<f64> {
+    if opt.time_to_expiry <= 0.0 || ctx.vol <= 0.0 || ctx.spot <= 0.0 {
+        return None;
+    }
+    let american = matches!(opt.exercise_style, ExerciseStyle::American);
+    let mut prev = crr_tree(ctx, opt, 42, american)?;
+    let mut steps = 42usize;
+    loop {
+        steps += 31;
+        let next = crr_tree(ctx, opt, steps, american)?;
+        if (next - prev).abs() < 0.01 || steps > 400 {
+            return Some(next);
+        }
+        prev = next;
+    }
+}
+
+fn crr_tree(ctx: &MarketContext, opt: &EquityOption, n: usize, american: bool) -> Option<f64> {
+    let s = ctx.spot;
+    let k = opt.strike;
+    let r = ctx.rate;
+    let q = ctx.div_yield;
+    let v = ctx.vol;
+    let t = opt.time_to_expiry;
+
+    let dt   = t / n as f64;
+    let u    = (v * dt.sqrt()).exp();
+    let d    = 1.0 / u;
+    let disc = (-(r - q) * dt).exp();
+    // risk-neutral probability
+    let p    = (1.0 / disc - d) / (u - d);
+    if p < 0.0 || p > 1.0 { return None; }
+    let q_prob = 1.0 - p;
+    let df     = (-r * dt).exp();
+
+    // Terminal payoffs
+    let mut values: Vec<f64> = (0..=n).map(|j| {
+        let spot = s * u.powi(j as i32) * d.powi((n - j) as i32);
+        payoff(spot, k, &opt.option_type)
+    }).collect();
+
+    // Backward induction
+    for i in (0..n).rev() {
+        for j in 0..=i {
+            let cont = df * (p * values[j + 1] + q_prob * values[j]);
+            if american {
+                let spot = s * u.powi(j as i32) * d.powi((i - j) as i32);
+                values[j] = cont.max(payoff(spot, k, &opt.option_type));
+            } else {
+                values[j] = cont;
+            }
+        }
+    }
+    Some(values[0].max(0.0))
+}
+
+fn payoff(spot: f64, strike: f64, opt_type: &OptionType) -> f64 {
+    match opt_type {
+        OptionType::Call => (spot - strike).max(0.0),
+        OptionType::Put  => (strike - spot).max(0.0),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Option chain — JSON-loadable market data
 // ---------------------------------------------------------------------------
 
@@ -145,7 +225,7 @@ impl OptionChain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rule4210_core::{EquityOption, ExerciseStyle};
+    use rule4210_core::EquityOption;
 
     fn atm_call_ctx() -> (MarketContext, EquityOption) {
         let ctx = MarketContext { spot: 100.0, vol: 0.20, rate: 0.05, div_yield: 0.0 };

@@ -18,7 +18,7 @@ use tower_http::cors::CorsLayer;
 
 use rule4210_core::{EquityOption, ExerciseStyle, Instrument, OptionType, Position};
 use rule4210_margin::{portfolio_margin, reg_t_margin};
-use rule4210_pricer::{BlackScholesPricer, MarketContext};
+use rule4210_pricer::{BlackScholesPricer, CrrPricer, MarketContext};
 use rule4210_scenarios::{tims_scenarios, ScenarioEngine};
 
 // ── Request types ────────────────────────────────────────────────────────────
@@ -32,7 +32,12 @@ struct MarginRequest {
     rate:       f64,
     div_yield:  f64,
     positions:  Vec<PosReq>,
+    /// "bs" (default) or "crr"
+    #[serde(default = "default_pricer")]
+    pricer:     String,
 }
+
+fn default_pricer() -> String { "bs".into() }
 
 #[derive(Deserialize)]
 struct PosReq {
@@ -95,6 +100,7 @@ fn default_spy_collar() -> MarginRequest {
         vol:        0.172,
         rate:       0.045,
         div_yield:  0.013,
+        pricer:     "bs".into(),
         positions: vec![
             PosReq { kind: "stock".into(), qty: 100.0,
                      strike: None, expiry: None, tte: None },
@@ -119,8 +125,10 @@ fn run_margin(req: MarginRequest) -> ApiResult<MarginResponse> {
         div_yield: req.div_yield,
     };
 
-    let pricer    = BlackScholesPricer;
-    let engine    = ScenarioEngine::new(&pricer);
+    let bs  = BlackScholesPricer;
+    let crr = CrrPricer;
+    let pricer_ref: &dyn rule4210_pricer::Pricer = if req.pricer == "crr" { &crr } else { &bs };
+    let engine    = ScenarioEngine::new(pricer_ref);
     let scenarios = tims_scenarios();
     let results   = engine.run(&pos_refs, &ctx, &scenarios);
 
