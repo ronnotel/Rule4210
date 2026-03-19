@@ -14,7 +14,7 @@ done) &
 if [ -n "$TUNNEL_TOKEN" ]; then
     while true; do
         echo "Starting cloudflared..."
-        cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+        cloudflared tunnel --no-autoupdate --protocol http2 run --token "$TUNNEL_TOKEN"
         echo "cloudflared exited ($?), restarting in 3s..."
         sleep 3
     done
