@@ -8,8 +8,8 @@
 
 use axum::{
     extract::Json,
-    http::StatusCode,
-    response::Html,
+    http::{HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
     routing::{get, post},
     Router,
 };
@@ -77,8 +77,13 @@ type ApiResult<T> = Result<Json<T>, (StatusCode, String)>;
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
-async fn serve_index() -> Html<&'static str> {
-    Html(include_str!("../static/index.html"))
+async fn serve_index() -> Response {
+    let mut resp = Html(include_str!("../static/index.html")).into_response();
+    resp.headers_mut().insert(
+        axum::http::header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, no-store, must-revalidate"),
+    );
+    resp
 }
 
 async fn health() -> &'static str { "ok" }
