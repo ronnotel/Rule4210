@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rule 4210 — Login</title>
+<style>
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --border:  #30363d;
+  --text:    #c9d1d9;
+  --muted:   #8b949e;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --accent2: #388bfd;
+  --radius:  6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 320px;
+}
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+.brand span { color: var(--text); }
+.sub {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 24px;
+}
+label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+input[type=password] {
+  width: 100%;
+  background: #21262d;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+  margin-bottom: 16px;
+}
+input[type=password]:focus { border-color: var(--accent2); }
+button {
+  width: 100%;
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { background: #2ea043; }
+.error {
+  background: rgba(248,81,73,0.1);
+  border: 1px solid rgba(248,81,73,0.3);
+  color: var(--red);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  margin-bottom: 16px;
+  display: none;
+}
+.error.show { display: block; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="brand">■ Rule<span>4210</span></div>
+  <div class="sub">Portfolio Margin Engine · FINRA Rule 4210(g)</div>
+  <div class="error" id="err">Incorrect password.</div>
+  <form method="POST" action="/login">
+    <label>Password</label>
+    <input type="password" name="password" autofocus placeholder="••••••••">
+    <button type="submit">Enter</button>
+  </form>
+</div>
+<script>
+  if (location.search.includes('error=1'))
+    document.getElementById('err').classList.add('show');
+</script>
+</body>
+</html>

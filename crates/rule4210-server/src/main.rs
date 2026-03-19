@@ -7,9 +7,10 @@
 //   POST /api/margin      → calculate PM for an arbitrary portfolio (JSON body)
 
 use axum::{
-    extract::Json,
-    http::{HeaderValue, StatusCode},
-    response::{Html, IntoResponse, Response},
+    extract::{Form, Json, State},
+    http::{header, HeaderValue, Request, StatusCode},
+    middleware::{self, Next},
+    response::{Html, IntoResponse, Redirect, Response},
     routing::{get, post},
     Router,
 };
@@ -20,6 +21,91 @@ use rule4210_core::{EquityOption, ExerciseStyle, Instrument, OptionType, Positio
 use rule4210_margin::{portfolio_margin, reg_t_margin};
 use rule4210_pricer::{BlackScholesPricer, CrrPricer, MarketContext};
 use rule4210_scenarios::{tims_scenarios, ScenarioEngine};
+
+// ── App state ─────────────────────────────────────────────────────────────────
+
+#[derive(Clone)]
+struct AppState {
+    /// Session token: SHA-ish of the password — valid cookie value
+    session_token: String,
+    password:      String,
+}
+
+impl AppState {
+    fn new() -> Self {
+        let password = std::env::var("APP_PASSWORD").unwrap_or_else(|_| "rule4210".into());
+        // Derive a stable token from the password (good enough for demo auth)
+        let token = format!("r4210-{:016x}", simple_hash(&password));
+        Self { password, session_token: token }
+    }
+}
+
+fn simple_hash(s: &str) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut h = DefaultHasher::new();
+    s.hash(&mut h);
+    h.finish()
+}
+
+// ── Auth middleware ───────────────────────────────────────────────────────────
+
+async fn require_auth(
+    State(state): State<AppState>,
+    req: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    let path = req.uri().path().to_owned();
+    if path == "/login" || path == "/health" {
+        return next.run(req).await;
+    }
+    if has_valid_session(&req, &state.session_token) {
+        next.run(req).await
+    } else {
+        Redirect::to("/login").into_response()
+    }
+}
+
+fn has_valid_session(req: &Request<axum::body::Body>, token: &str) -> bool {
+    let expected = format!("session={token}");
+    req.headers()
+        .get(header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .map(|cookies| cookies.split(';').any(|c| c.trim() == expected))
+        .unwrap_or(false)
+}
+
+// ── Login handlers ────────────────────────────────────────────────────────────
+
+async fn login_page() -> Html<&'static str> {
+    Html(include_str!("../static/login.html"))
+}
+
+#[derive(Deserialize)]
+struct LoginForm {
+    password: String,
+}
+
+async fn login_submit(
+    State(state): State<AppState>,
+    Form(form): Form<LoginForm>,
+) -> Response {
+    if form.password == state.password {
+        let cookie = format!(
+            "session={}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400",
+            state.session_token
+        );
+        (
+            StatusCode::SEE_OTHER,
+            [
+                (header::LOCATION,    HeaderValue::from_static("/")),
+                (header::SET_COOKIE,  HeaderValue::from_str(&cookie).unwrap()),
+            ],
+        ).into_response()
+    } else {
+        Redirect::to("/login?error=1").into_response()
+    }
+}
 
 // ── Request types ────────────────────────────────────────────────────────────
 
@@ -205,12 +291,17 @@ fn build_positions(req: &MarginRequest) -> Result<Vec<Position>, (StatusCode, St
 
 #[tokio::main]
 async fn main() {
+    let state = AppState::new();
+
     let app = Router::new()
         .route("/",            get(serve_index))
         .route("/health",      get(health))
         .route("/api/demo",    get(demo_handler))
         .route("/api/margin",  post(calculate_handler))
-        .layer(CorsLayer::permissive());
+        .route("/login",       get(login_page).post(login_submit))
+        .layer(middleware::from_fn_with_state(state.clone(), require_auth))
+        .layer(CorsLayer::permissive())
+        .with_state(state);
 
     let addr = "0.0.0.0:8080";
     println!("Rule 4210 server → http://{addr}");
