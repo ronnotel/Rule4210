@@ -56,7 +56,7 @@ async fn require_auth(
     next: Next,
 ) -> Response {
     let path = req.uri().path().to_owned();
-    if path == "/login" || path == "/health" {
+    if path == "/login" || path == "/logout" || path == "/health" {
         return next.run(req).await;
     }
     if has_valid_session(&req, &state.session_token) {
@@ -105,6 +105,18 @@ async fn login_submit(
     } else {
         Redirect::to("/login?error=1").into_response()
     }
+}
+
+async fn logout_handler() -> Response {
+    (
+        StatusCode::SEE_OTHER,
+        [
+            (header::LOCATION,   HeaderValue::from_static("/login")),
+            (header::SET_COOKIE, HeaderValue::from_static(
+                "session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"
+            )),
+        ],
+    ).into_response()
 }
 
 // ── Request types ────────────────────────────────────────────────────────────
@@ -165,10 +177,11 @@ type ApiResult<T> = Result<Json<T>, (StatusCode, String)>;
 
 async fn serve_index() -> Response {
     let mut resp = Html(include_str!("../static/index.html")).into_response();
-    resp.headers_mut().insert(
-        axum::http::header::CACHE_CONTROL,
-        HeaderValue::from_static("no-cache, no-store, must-revalidate"),
-    );
+    let hdrs = resp.headers_mut();
+    hdrs.insert(axum::http::header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, no-store, must-revalidate"));
+    hdrs.insert(axum::http::header::VARY,
+        HeaderValue::from_static("Cookie"));
     resp
 }
 
@@ -299,6 +312,7 @@ async fn main() {
         .route("/api/demo",    get(demo_handler))
         .route("/api/margin",  post(calculate_handler))
         .route("/login",       get(login_page).post(login_submit))
+        .route("/logout",      get(logout_handler))
         .layer(middleware::from_fn_with_state(state.clone(), require_auth))
         .layer(CorsLayer::permissive())
         .with_state(state);
