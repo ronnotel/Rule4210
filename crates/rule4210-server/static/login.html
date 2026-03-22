@@ -3,104 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rule 4210 — Login</title>
+<title>GreekStack</title>
 <style>
-:root {
-  --bg:      #0d1117;
-  --surface: #161b22;
-  --border:  #30363d;
-  --text:    #c9d1d9;
-  --muted:   #8b949e;
-  --green:   #3fb950;
-  --red:     #f85149;
-  --accent2: #388bfd;
-  --radius:  6px;
-}
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 13px;
-  background: var(--bg);
-  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #080b0f;
+  color: #c9d1d9;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
+
+.wordmark {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.wordmark span {
+  color: #3fb950;
+}
+
+.tagline {
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #3d4450;
+  margin-bottom: 56px;
+}
+
 .box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px;
-  width: 320px;
+  width: 300px;
 }
-.brand {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--green);
-  margin-bottom: 4px;
-}
-.brand span { color: var(--text); }
-.sub {
-  color: var(--muted);
-  font-size: 11px;
-  margin-bottom: 24px;
-}
-label {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
+
 input[type=password] {
   width: 100%;
-  background: #21262d;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  padding: 8px 10px;
-  font-size: 13px;
-  font-family: 'Consolas', monospace;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 4px;
+  color: #e6edf3;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'Consolas', 'SF Mono', monospace;
   outline: none;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
 }
-input[type=password]:focus { border-color: var(--accent2); }
+
+input[type=password]:focus {
+  border-color: #3fb950;
+}
+
+input[type=password]::placeholder {
+  color: #3d4450;
+}
+
 button {
   width: 100%;
-  background: #238636;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius);
+  background: transparent;
+  color: #3fb950;
+  border: 1px solid #238636;
+  border-radius: 4px;
   padding: 10px;
   font-size: 13px;
   font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-button:hover { background: #2ea043; }
+
+button:hover {
+  background: #238636;
+  color: #ffffff;
+}
+
 .error {
-  background: rgba(248,81,73,0.1);
-  border: 1px solid rgba(248,81,73,0.3);
-  color: var(--red);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  font-size: 12px;
-  margin-bottom: 16px;
+  font-size: 11px;
+  color: #f85149;
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
   display: none;
 }
+
 .error.show { display: block; }
+
+.footer {
+  position: fixed;
+  bottom: 24px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #21262d;
+}
 </style>
 </head>
 <body>
+
+<div class="wordmark">Greek<span>Stack</span></div>
+<div class="tagline">Real-time Risk Analytics</div>
+
 <div class="box">
-  <div class="brand">■ Rule<span>4210</span></div>
-  <div class="sub">Portfolio Margin Engine · FINRA Rule 4210(g)</div>
-  <div class="error" id="err">Incorrect password.</div>
+  <div class="error" id="err">Access denied.</div>
   <form method="POST" action="/login">
-    <label>Password</label>
-    <input type="password" name="password" autofocus placeholder="••••••••">
+    <input type="password" name="password" autofocus placeholder="Access key">
     <button type="submit">Enter</button>
   </form>
 </div>
+
+<div class="footer">greekstack.io</div>
+
 <script>
   if (location.search.includes('error=1'))
     document.getElementById('err').classList.add('show');
